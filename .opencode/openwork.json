@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "workspace": {
+    "name": "openwork-enterprise",
+    "createdAt": 1769376753937,
+    "preset": "starter"
+  },
+  "authorizedRoots": [
+    "/Users/benjaminshafii/openwork-enterprise"
+  ]
+}
