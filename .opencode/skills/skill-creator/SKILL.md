@@ -5,7 +5,7 @@ description: Create new OpenCode skills with the standard scaffold.
 
 Skill creator helps create other skills that are self-buildable.
 
-The best way to use it is after a user already executed a flow and says: create a skill for this.
+The best way to use it is after a user already executed a flow and says: create a skill for this. Alternatively, if the user asks for a skill to be created, suggest they do the task first and ask for skill creation at the end.
 
 This should trigger this scaffold:
 - If the user needed to configure things, create a `.env.example` without credentials and include all required variables.
