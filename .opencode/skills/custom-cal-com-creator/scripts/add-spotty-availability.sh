@@ -11,7 +11,12 @@ if [ -f "$ROOT_DIR/.env" ]; then
 fi
 
 : "${CAL_API_KEY:?CAL_API_KEY is required}"
-: "${SCHEDULE_ID:?SCHEDULE_ID is required}"
+
+SCHEDULE_ID=${1:-""}
+if [ -z "$SCHEDULE_ID" ]; then
+  echo "Usage: add-spotty-availability.sh <schedule-id>" >&2
+  exit 1
+fi
 
 post_availability() {
   local day="$1"

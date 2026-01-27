@@ -6,15 +6,17 @@ description: Create a Cal.com schedule with spotty PST availability and an event
 ## Quick Usage (Already Configured)
 
 ### 1) Configure env
-- Copy `.env.example` to `.env` and fill values.
+- Copy `.env.example` to `.env` and set `CAL_API_KEY`.
 - If you want the skill to store credentials, add them to `.env` and rotate keys later.
 
 ### 2) Run scripts
 ```bash
 bash .opencode/skills/custom-cal-com-creator/scripts/create-schedule.sh
-bash .opencode/skills/custom-cal-com-creator/scripts/delete-default-availability.sh
-bash .opencode/skills/custom-cal-com-creator/scripts/add-spotty-availability.sh
-bash .opencode/skills/custom-cal-com-creator/scripts/create-event-type.sh
+# copy schedule id + default availability id from the output
+
+bash .opencode/skills/custom-cal-com-creator/scripts/delete-default-availability.sh <availability-id>
+bash .opencode/skills/custom-cal-com-creator/scripts/add-spotty-availability.sh <schedule-id>
+bash .opencode/skills/custom-cal-com-creator/scripts/create-event-type.sh <schedule-id> "Tom x OpenWork" "tom-x-openwork" 30 "integrations:daily"
 ```
 
 ## Common Gotchas
@@ -26,8 +28,8 @@ bash .opencode/skills/custom-cal-com-creator/scripts/create-event-type.sh
 ## First-Time Setup (If Not Configured)
 
 1. Create a Cal.com API key in Settings > Security.
-2. Copy `.env.example` to `.env` and fill in the minimum config.
-3. The scripts infer what they can do from the values available in `.env`.
+2. Copy `.env.example` to `.env` and set `CAL_API_KEY`.
+3. The scripts use runtime IDs (from the prior response) for schedule and availability.
 
 ## Notes
 

@@ -12,8 +12,8 @@ fi
 
 : "${CAL_API_KEY:?CAL_API_KEY is required}"
 
-SCHEDULE_NAME=${SCHEDULE_NAME:-"PST Spotty This Week"}
-SCHEDULE_TIME_ZONE=${SCHEDULE_TIME_ZONE:-"America/Los_Angeles"}
+SCHEDULE_NAME=${1:-"PST Spotty This Week"}
+SCHEDULE_TIME_ZONE=${2:-"America/Los_Angeles"}
 
 payload=$(cat <<EOF
 {"name":"${SCHEDULE_NAME}","timeZone":"${SCHEDULE_TIME_ZONE}"}

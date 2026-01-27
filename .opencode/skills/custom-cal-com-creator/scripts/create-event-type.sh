@@ -11,12 +11,17 @@ if [ -f "$ROOT_DIR/.env" ]; then
 fi
 
 : "${CAL_API_KEY:?CAL_API_KEY is required}"
-: "${SCHEDULE_ID:?SCHEDULE_ID is required}"
 
-EVENT_TITLE=${EVENT_TITLE:-"Tom x OpenWork"}
-EVENT_SLUG=${EVENT_SLUG:-"tom-x-openwork"}
-EVENT_LENGTH=${EVENT_LENGTH:-30}
-LOCATION_TYPE=${LOCATION_TYPE:-"integrations:daily"}
+SCHEDULE_ID=${1:-""}
+if [ -z "$SCHEDULE_ID" ]; then
+  echo "Usage: create-event-type.sh <schedule-id> [title] [slug] [length] [location-type]" >&2
+  exit 1
+fi
+
+EVENT_TITLE=${2:-"Tom x OpenWork"}
+EVENT_SLUG=${3:-"tom-x-openwork"}
+EVENT_LENGTH=${4:-30}
+LOCATION_TYPE=${5:-"integrations:daily"}
 
 payload=$(cat <<EOF
 {"title":"${EVENT_TITLE}","slug":"${EVENT_SLUG}","length":${EVENT_LENGTH},"scheduleId":${SCHEDULE_ID},"metadata":{},"locations":[{"type":"${LOCATION_TYPE}"}]}

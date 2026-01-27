@@ -11,6 +11,11 @@ if [ -f "$ROOT_DIR/.env" ]; then
 fi
 
 : "${CAL_API_KEY:?CAL_API_KEY is required}"
-: "${DEFAULT_AVAILABILITY_ID:?DEFAULT_AVAILABILITY_ID is required}"
+
+DEFAULT_AVAILABILITY_ID=${1:-""}
+if [ -z "$DEFAULT_AVAILABILITY_ID" ]; then
+  echo "Usage: delete-default-availability.sh <availability-id>" >&2
+  exit 1
+fi
 
 curl -sS -X DELETE "https://api.cal.com/v1/availabilities/${DEFAULT_AVAILABILITY_ID}?apiKey=${CAL_API_KEY}"
