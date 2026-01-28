@@ -19,7 +19,6 @@ You have access to the Screenpipe MCP server running on localhost:3030, which pr
 - Time-based filtering (last hour, today, yesterday, specific date ranges)
 - App-specific filtering (Chrome, VS Code, Slack, etc.)
 - Video export for any time range
-- Computer control on macOS (click, type, open apps)
 
 ## How to help users
 

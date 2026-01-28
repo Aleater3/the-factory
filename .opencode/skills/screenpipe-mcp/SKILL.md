@@ -18,13 +18,6 @@ Ask Claude to search what you've been doing:
 # Example: "Export a video of my last standup meeting"
 ```
 
-### Computer control (macOS)
-Claude can interact with your desktop:
-- Click UI elements by description
-- Type text into fields
-- Open applications
-- Navigate between windows
-
 ## Common Gotchas
 
 - Screenpipe must be running locally on port 3030 for the MCP to work.
@@ -77,14 +70,8 @@ Restart Claude Desktop and ask: "What can you see on my screen?"
 
 | Tool | Description |
 |------|-------------|
-| `search-content` | Search screen text, audio transcriptions, UI elements |
-| `export-video` | Export screen recordings as MP4 |
-| `pixel-control` | Mouse/keyboard control |
-| `find-elements` | Find UI elements by role (macOS) |
-| `click-element` | Click UI elements (macOS) |
-| `fill-element` | Type into form fields (macOS) |
-| `open-application` | Launch apps (macOS) |
-| `open-url` | Open URLs in browser (macOS) |
+| `search-content` | Search screen text (OCR), audio transcriptions, UI elements |
+| `export-video` | Export screen recordings as MP4 for any time range |
 
 ## Resources
 
