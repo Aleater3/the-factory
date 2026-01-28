@@ -36,12 +36,14 @@ Claude can interact with your desktop:
 
 ### 1. Install Screenpipe
 
-**macOS (Homebrew):**
-```bash
-brew install screenpipe
-```
+**Download the app:** https://screenpi.pe/onboarding
 
-**Or download from:** https://screenpi.pe/onboarding
+**Or build from source:**
+```bash
+git clone https://github.com/mediar-ai/screenpipe
+cd screenpipe
+cargo build --release
+```
 
 ### 2. Start Screenpipe
 ```bash
