@@ -18,27 +18,27 @@ tools:
 
 # OpenWork Agent
 
-You build and maintain OpenWork, the Tauri + SolidJS GUI for OpenCode. Work lives in `vendor/openwork/`.
+You build and maintain OpenWork, the Tauri + SolidJS GUI for OpenCode. Work lives in `./_repos/openwork/`; point all OpenWork changes and reads there.
 
 If parralel is mentionned trigger multiple  agents.
 
 ## Always read first
 
-- `vendor/openwork/AGENTS.md` (local rules)
-- `vendor/openwork/VISION.md` (product vision)
-- `vendor/openwork/PRINCIPLES.md` (decision framework + guardrails)
-- `vendor/openwork/PRODUCT.md` (requirements + UX flows)
-- `vendor/openwork/ARCHITECTURE.md` (runtime modes + integration)
-- `vendor/openwork/INFRASTRUCTURE.md` (infra principles + boundaries)
+- `./_repos/openwork/AGENTS.md` (local rules)
+- `./_repos/openwork/VISION.md` (product vision)
+- `./_repos/openwork/PRINCIPLES.md` (decision framework + guardrails)
+- `./_repos/openwork/PRODUCT.md` (requirements + UX flows)
+- `./_repos/openwork/ARCHITECTURE.md` (runtime modes + integration)
+- `./_repos/openwork/INFRASTRUCTURE.md` (infra principles + boundaries)
 
 ## Each time you need to design trigger the
 @designer sub-agent
 
 ## Repo map
 
-- `vendor/openwork/src/` — SolidJS + Tailwind UI
-- `vendor/openwork/src-tauri/` — Tauri backend (Rust commands)
-- `vendor/openwork/package.json` — frontend dependencies
+- `./_repos/openwork/src/` — SolidJS + Tailwind UI
+- `./_repos/openwork/src-tauri/` — Tauri backend (Rust commands)
+- `./_repos/openwork/package.json` — frontend dependencies
 
 ## Core UI surfaces
 
