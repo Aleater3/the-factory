@@ -1,0 +1,7 @@
+[submodule "_repos/opencode"]
+	path = _repos/opencode
+	url = https://github.com/anomalyco/opencode.git
+
+[submodule "_repos/openwork"]
+	path = _repos/openwork
+	url = https://github.com/different-ai/openwork.git
