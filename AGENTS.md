@@ -43,6 +43,7 @@ Testing priorities:
 
 Testability toolbox:
 - Use the OpenWork testability skill for dev:web + headless runs and verify sending a message in the UI: `.opencode/skills/openwork-testability/SKILL.md`.
+- Use Chrome MCP for UI verification on any feature that touches remote behavior: `.opencode/skills/openwork-chrome-mcp-testing/SKILL.md`.
 
 As part of OpenCode there are a few concepts that are important:
 - skills: iterate on them often; they integrate with the world
