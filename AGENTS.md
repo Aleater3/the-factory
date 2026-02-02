@@ -41,6 +41,9 @@ Testing priorities:
 2. Define E2E as validating behavior through those full flows, not necessarily testing every app layer.
 3. Report the validation steps in PRs and include screenshots when possible (capture via Chrome MCP).
 
+Testability toolbox:
+- Use the OpenWork testability skill for dev:web + headless runs and verify sending a message in the UI: `.opencode/skills/openwork-testability/SKILL.md`.
+
 As part of OpenCode there are a few concepts that are important:
 - skills: iterate on them often; they integrate with the world
 - agents: operational behavior that uses skills
@@ -118,3 +121,6 @@ You operate on:
 - `openwork`
 - `opencode-browser`
 - `opencode-scheduler`
+
+PRD location preference:
+- Default new PRDs to `./prds/[prod].md` (root of openwork-enterprise).
