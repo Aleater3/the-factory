@@ -58,18 +58,22 @@ When the user says create an agent, follow `https://opencode.ai/docs/agents/`.
 There's more in OpenCode docs (skills, agents, MCP). Use them when needed.
 
 Root skills (from `.opencode/skills`):
-- `agent-creator`
-- `command-creator`
-- `create-cal-com-link`
-- `owpenbot-test`
-- `plugin-creator`
-- `release-openwork`
-- `research-doc`
-- `screenpipe`
-- `skill-creator`
-- `telegram`
-- `workspace-guide`
-- `worktree-workflow`
+- `agent-creator` — trigger when user asks to create an agent
+- `command-creator` — trigger when user asks to create a custom command
+- `create-cal-com-link` — trigger when user asks to create a Cal.com link for a specific person/time window
+- `mcp-arch` — trigger when user mentions "mcp wiring", "mcp architecture", or "mcp config"
+- `owpenbot-test` — trigger when user mentions "owpenbot tests", "telegram test tokens", or "openwrk integration test"
+- `plugin-creator` — trigger when user asks to create an OpenCode plugin or asks where to load plugins
+- `release-openwork` — trigger when user asks to release OpenWork or do a patch release
+- `research-doc` — trigger when user mentions "hey research", "research doc", or "research topic"
+- `screenpipe` — trigger when user asks to search Screenpipe recordings or use the Screenpipe API/CLI
+- `skill-creator` — trigger when user asks to create a new skill
+- `telegram` — trigger when user asks to send Telegram messages or configure a Telegram bot
+- `workspace-guide` — trigger when user asks for an OpenWork onboarding/workspace intro
+- `worktree-workflow` — trigger when user mentions "create a worktree", "commit regularly", or "push changes"
+
+OpenWork repo skills (from `_repos/openwork/.opencode/skills`):
+- `openwrk-npm-publish`
 
 Root commands (from `.opencode/commands`):
 - `learn-files`
@@ -98,6 +102,7 @@ You refer to `ISSUES.md` to understand what needs conceptual fixing across compo
 If you need inspiration for things to fix, check it.
 
 When it's time to create skills/agents/etc, use the appropriate skills above.
+For openwrk npm publishes, use `_repos/openwork/.opencode/skills/openwrk-npm-publish/SKILL.md`.
 
 Always finish by suggesting a few things you could fix in your process, skills, or agents.
 Use this format:
