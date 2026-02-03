@@ -19,7 +19,7 @@ Active repos (real locations):
 - `_repos/opencode` (agentic coding tool; treat as read-only unless asked)
 - `_repos/opencode-browser` (browser plugin)
 - `_repos/opencode-scheduler` (scheduler and launchd tasks)
-- `_repos/owpenbot` (messaging bridge)
+
 
 OpenWork packages (inside `_repos/openwork/packages`):
 - `packages/app` (mobile-first UI)
