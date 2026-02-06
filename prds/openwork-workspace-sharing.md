@@ -40,6 +40,10 @@ Technical focus:
 - Use existing token sources:
   - local host: `openwork_server_info` (clientToken/hostToken + connectUrl)
   - remote OpenWork workspace: use the workspace's OpenWork host URL and the token used to connect (today this is stored globally; see Phase 0.5)
+- Make sharing not-fragile:
+  - today, host tokens rotate whenever the OpenWork server restarts
+  - in direct runtime, local workspace switching restarts the engine (and stops the OpenWork server), which invalidates previously shared credentials
+  - Phase 0 should either (a) persist host tokens across restarts or (b) clearly warn that switching workspaces can invalidate a share
 
 ### Phase 0.5: Enclose global settings into per-workspace credentials
 Problem:
@@ -69,13 +73,16 @@ Goal:
 - The first connection can be slow; subsequent switches should reuse a warm connection.
 
 Implementation direction:
-- Keep a small per-workspace connection pool in the client:
+- Treat engine runtime as a first-class lever:
+  - local switching can be materially faster when `Engine runtime = Openwrk orchestrator` (no engine restart per workspace)
+  - remote switching still needs client-side caching
+- Keep a small per-workspace connection pool in the client for remote workspaces:
   - cached OpenWork client (for host config + bots)
   - cached OpenCode client (via OpenWork proxy) + basic health/session cache
 - Background refresh for inactive workspaces (health + sessions list) with backoff.
 
 ## Current state (mapped to real code)
-This PRD is grounded in OpenWork `origin/dev` (as of 8153194).
+This PRD is grounded in OpenWork `origin/dev` (as of 30fa071).
 
 ### The sidebar already has multi-workspace UI
 - Workspace list + actions live in `packages/app/src/app/components/session/sidebar.tsx`.
@@ -99,6 +106,54 @@ This PRD is grounded in OpenWork `origin/dev` (as of 8153194).
     - `--token <client_token>` and `--host-token <host_token>`
     - `--cors *`
     - `--approval auto` (important: safe only when not externally shared)
+
+### Engine mode selection exists (source + runtime)
+OpenWork already exposes exactly the engine knobs you asked about:
+- Engine source (where the OpenCode binary comes from): Bundled sidecar vs System install (PATH)
+  - UI: `packages/app/src/app/pages/settings.tsx` (Engine section)
+  - Persistence: `packages/app/src/app/app.tsx` stores `openwork.engineSource` in localStorage
+- Engine runtime (how local OpenCode is orchestrated): Direct vs Openwrk daemon
+  - UI: `packages/app/src/app/pages/settings.tsx` (Engine section)
+  - Persistence: `packages/app/src/app/app.tsx` stores `openwork.engineRuntime` in localStorage
+  - Workspace switching behavior: `packages/app/src/app/context/workspace.ts`
+    - direct: stop/start engine on workspace changes
+    - openwrk: call `openwrkWorkspaceActivate()` + reconnect
+
+Sensitivity summary:
+- Workspace sharing is primarily about the OpenWork server (`openwork-server` sidecar). That server is started regardless of engine runtime.
+- `Engine runtime = openwrk` mainly changes how fast local workspace switching can be and where we can implement "keep connections warm".
+- Important: `Engine runtime = direct` currently makes sharing brittle during local workspace switching.
+  - `packages/app/src/app/context/workspace.ts` uses `engineStop()` + `engineStart()` for direct runtime workspace switches.
+  - `packages/desktop/src-tauri/src/commands/engine.rs` `engine_stop` stops the OpenWork server manager.
+  - `packages/desktop/src-tauri/src/openwork_server/mod.rs` generates fresh UUID tokens on each OpenWork server start.
+  - Result: previously shared `Access token` can become invalid after a workspace switch (or engine restart).
+
+### Openwrk daemon is a real component when runtime = openwrk
+- Desktop spawns openwrk daemon (sidecar `openwrk`) and uses its HTTP API:
+  - spawn + state reading: `packages/desktop/src-tauri/src/openwrk/mod.rs`
+  - tauri commands: `packages/desktop/src-tauri/src/commands/openwrk.rs` (`openwrk_status`, `openwrk_workspace_activate`, `openwrk_instance_dispose`)
+- openwrk daemon routes (today): `/health`, `/workspaces`, `/workspaces/:id/activate`, `/instances/:id/dispose`
+  - implementation: `packages/headless/src/cli.ts` (daemon router)
+
+Important detail:
+- openwrk workspace ids are `ws-<sha1prefix>` (see `packages/headless/src/cli.ts` `workspaceIdForLocal()`)
+- openwork-server workspace ids are `ws_<sha256prefix>` (see `packages/server/src/workspaces.ts` `workspaceIdForPath()`)
+These ids are different; the PRD treats openwrk ids as internal orchestration identifiers and uses openwork-server ids for shareable workspace endpoints.
+
+### openwrk (headless) already runs openwork-server in single-workspace mode
+This matters for the "stand-alone system" goal.
+
+- `openwrk start/serve` can spawn:
+  - opencode
+  - openwork-server
+  - owpenbot
+  - all under a CLI-managed run id
+- openwork-server is launched with exactly one `--workspace` today:
+  - `packages/headless/src/cli.ts` -> `startOpenworkServer()` builds args with a single `--workspace <path>`
+
+Implication:
+- openwrk already models "workspace == server" for headless operation.
+- Multi-workspace on a single shared port is not implemented there yet; that's what Phase 1 path mounts (or a gateway) would enable.
 
 ### Workflow/config sharing already exists as an export/import bundle
 This is the "share skills/plugins/commands" path.
@@ -156,6 +211,7 @@ Section 1: "Access"
 - Explanation text (short, not developer-y):
   - "Share with trusted people only. Anyone with this can connect to your workspace." 
   - "Best on the same Wi-Fi. For remote access, use a VPN/tunnel."
+  - "If you use Engine runtime = Direct, switching local workspaces can restart the host and invalidate this token. Openwrk runtime keeps shares more stable."
 
 Section 2: "Config bundle"
 - For local workspaces:
@@ -183,7 +239,7 @@ Proposed format:
 ```
 OpenWork Workspace
 name: Finance Ops
-url:  http://host:8787/w/ws-123
+url:  http://host:8787/w/ws_abc123def456
 token: <access token>
 ```
 
@@ -208,8 +264,6 @@ JSON payload:
 
 Notes:
 - The `ws_...` shape matches OpenWork server's current `workspaceIdForPath()` output.
-
-Notes:
 - The important part is `workspace.baseUrl` (already fully scoped).
 - The token is a bearer secret; UI should encourage trusted-only sharing.
 - Phase 0 can ship without deep links. Phase 1 introduces them.
@@ -225,6 +279,20 @@ Notes:
 Introduce a path mount for each workspace:
 - Base URL: `http://host:8787`
 - Workspace mount: `/w/<workspaceId>`
+
+### Where the path-based routing lives
+Recommended: implement mounts inside openwork-server.
+
+Why:
+- openwork-server is the thing clients already connect to and share.
+- It already knows the workspace list (`--workspace` repeatable in `packages/server/src/config.ts`).
+- It already proxies to OpenCode and can set workspace-specific directory headers.
+
+Alternative (later): openwrk daemon as a gateway.
+- openwrk already has a daemon and a workspace registry.
+- openwrk already runs openwork-server in single-workspace mode.
+- It could evolve into a reverse proxy where `/w/<id>` routes to a per-workspace openwork-server instance.
+- This is a larger operational change; keep as a follow-on if we need process isolation.
 
 Within the workspace mount, expose a workspace-scoped API surface:
 - `GET /w/<id>/health`
@@ -244,14 +312,17 @@ Today:
 - active workspace is `config.workspaces[0]`
 
 Phase 1 target:
-- workspace-scoped auth:
-  - each workspace has its own `accessToken` (bearer)
-  - host token remains host-only and is not shared casually
+- Phase 1A (recommended first cut): keep the existing global bearer token and add path-based routing.
+  - This makes the URL workspace-specific even if the token is still host-wide.
+  - This is consistent with Phase 0's "trusted people" stance.
+- Phase 1B (hardening): per-workspace tokens + "share enabled" toggles.
+  - This turns path mounts into true independent capability boundaries.
 - workspace selection is derived from the mount path, not from `workspaces[0]`
 
 Concrete code that must change:
 - `packages/server/src/server.ts`
-  - `requireClient()` currently checks `token === config.token`; must accept a workspace token map.
+  - Phase 1A: route matching must resolve a workspace from `/w/<id>` and pass it to proxy + handlers.
+  - Phase 1B: `requireClient()` currently checks `token === config.token`; must accept a workspace token map.
   - `proxyOpencodeRequest()` currently uses `config.workspaces[0]`; must resolve workspace by id.
   - `GET /workspaces` currently returns only active; likely becomes host-only or returns all (non-breaking decision needed).
 - `packages/server/src/types.ts`
@@ -346,6 +417,9 @@ Constraint:
   - render credentials + config export CTA + bots alpha CTA
 - `packages/app/src/app/context/workspace.ts`
   - wire modal open/close and actions to existing token sources
+- `packages/desktop/src-tauri/src/openwork_server/mod.rs`
+  - persist/reuse the host `client_token` + `host_token` so shared credentials survive engine restarts
+  - (optional) add an explicit "Rotate tokens" action instead of implicit rotation
 
 ### Phase 0.5
 - `packages/app/src/app/lib/openwork-server.ts`
@@ -357,19 +431,34 @@ Constraint:
 - `packages/desktop/src-tauri/src/commands/workspace.rs`
   - persist token refs on create/update
 
-### Phase 1
+### Phase 1A (path mounts, global token)
 - `packages/server/src/server.ts`
   - introduce `/w/<id>` mount routing
-  - proxy opencode based on workspace id
+  - scope `/opencode` proxy by workspace id (instead of `config.workspaces[0]`)
+  - scope `/status` and `/capabilities` within the mount
+- `packages/app/src/app/lib/openwork-server.ts`
+  - add helpers to build a mounted baseUrl (`${host}/w/${workspaceId}`)
+- `packages/app/src/app/components/share-workspace-modal.tsx`
+  - share the mounted URL for the selected workspace
+
+### Phase 1B (per-workspace tokens + share enabled)
+- `packages/server/src/types.ts`
+  - represent per-workspace access tokens
+- `packages/server/src/config.ts`
+  - support configuring per-workspace tokens from file config
+- `packages/server/src/server.ts`
   - validate bearer token per workspace
 - `packages/desktop/src-tauri/src/openwork_server/*`
-  - pass per-workspace tokens/config to the OpenWork server
+  - pass per-workspace tokens/config to the OpenWork server (or mint them on demand)
 
 ### Phase 2
 - `packages/app/src/app/context/workspace.ts`
   - add connection pool + warmers
 - `packages/app/src/app/app.tsx`
   - sidebar session grouping uses per-workspace caches for remote
+
+Note:
+- For local workspaces, Phase 2 should strongly prefer `Engine runtime = openwrk` to avoid tearing down the host stack during workspace switches.
 
 ## Migration notes
 - Existing users with remote OpenWork workspaces rely on global token settings.
@@ -384,22 +473,32 @@ Constraint:
 - Local host: open Share modal for a local workspace; verify URL + token match Settings.
 - Remote workspace: open Share modal; verify it shows correct host URL and token.
 - Export bundle: export from local workspace and inspect archive contains `.opencode/**` and `opencode.json`.
+- Token stability: copy Access token, restart the engine (or switch local workspace), confirm the token remains valid (or the UI warns explicitly if we choose not to stabilize it).
 
 ### Phase 1
 - Host runs multiple local workspaces.
-- Share two different workspace endpoints (`/w/a` and `/w/b`) to two clients.
+- Share two different workspace endpoints (`/w/ws_...` and `/w/ws_...`) to two clients.
 - Verify clients do not affect each other and both can run prompts.
 
 ### Phase 2
 - Connect to two remote workspaces.
 - Verify switching is fast after first connect.
 - Verify sidebar shows last known health + sessions for both without switching (as available).
+- Local: with `Engine runtime = openwrk`, switch between two local workspaces and confirm the host stack stays up (no token rotation, no reconnect storms).
 
 ## Open questions (remaining)
-- Where do we store per-workspace tokens safely (keychain vs encrypted file) in desktop/mobile?
-- Do we want to keep `GET /workspaces` client-visible once path mounts exist, or make it host-only?
-- How do we model "share enabled" state per workspace (and drive approval mode)?
-- Bots: how do we ensure inbound Slack/Telegram messages are routed to the intended workspace when the host has many (alpha)?
+- Token storage:
+  - Where do we store per-workspace tokens safely (keychain vs encrypted file) in desktop/mobile?
+  - Where do we store host openwork-server tokens so they survive engine restarts (and how do we rotate them)?
+- Engine/runtime defaults:
+  - Should enabling sharing recommend (or automatically switch to) `Engine runtime = openwrk` to avoid restarts during workspace switching?
+- Workspace discovery:
+  - Do we keep `GET /workspaces` client-visible once path mounts exist, or make it host-only?
+  - Do we need a host-only "list all workspaces" endpoint so the UI can share non-active workspaces without pre-activating them?
+- ID alignment:
+  - If we ever use openwrk as a path-based gateway, do we unify openwrk workspace IDs (`ws-...`) and openwork-server IDs (`ws_...`) or keep an explicit mapping layer?
+- Bots:
+  - How do we ensure inbound Slack/Telegram messages are routed to the intended workspace when the host has many (alpha)?
 
 ## References
 - `prds/remote-first-openwork.md`
