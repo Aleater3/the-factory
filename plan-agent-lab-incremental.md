@@ -18,6 +18,15 @@ Test harness (non-negotiable)
   - This runs `openwrk` + the web app.
   - Verification is performed via Chrome MCP (UI flows) and curl (REST flows).
 
+Concrete harness invocation (OpenWork repo)
+- From `_repos/openwork`:
+  - `pnpm dev:headless-web`
+
+Notes:
+- The harness is the default environment for Agent Lab iteration.
+- When a milestone touches `packages/server/src`, rebuild the server binary:
+  - `pnpm --filter openwork-server build:bin`
+
 Where we are today (repo-grounded)
 
 OpenWork already provides most of the substrate we need:
@@ -69,9 +78,27 @@ Deliverables (OpenWork repo)
 - Toy UI shows "Owner vs collaborator" clearly (even if still utilitarian).
 
 Harness gate (`dev:headless-web`)
-- Start the harness.
-- Open the app in Chrome.
-- Confirm the permission-reply endpoint is blocked for collaborator (403) and allowed for owner.
+
+Start harness
+- `pnpm dev:headless-web`
+
+UI verification (Chrome MCP)
+- Navigate to the running web app URL printed by the harness.
+- Open the Share UI and mint a viewer token (owner flow).
+- Validate that collaborator tokens cannot self-approve OpenCode permission prompts.
+
+Suggested Chrome MCP checks
+- Open the app and confirm no console errors on load.
+- In the Share surface, mint a viewer token and confirm it appears.
+- Try to perform an OpenCode permission reply using a collaborator token and observe the UI error (403).
+
+REST verification (curl)
+- Get workspace id:
+  - `GET /workspaces`
+- Collaborator should be blocked:
+  - `POST /w/:id/opencode/permission/req123/reply` -> 403
+- Owner should not be blocked by OpenWork:
+  - same request -> not 403 (may still fail with 400/502 if OpenCode is unconfigured)
 
 Demo script (what feels like a big step)
 1) Start a host with `openwrk start --detach`.
