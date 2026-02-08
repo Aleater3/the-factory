@@ -4,6 +4,7 @@ description: A new OpenWork package and Toy UI that experiments with an agent-as
 ---
 
 ## Summary
+
 OpenWork is an open-source alternative to Claude Cowork (see `_repos/openwork/AGENTS.md`). OpenCode is the engine; OpenWork is the experience layer (see `_repos/openwork/VISION.md`).
 
 This PRD proposes **Agent Lab**: a new, intentionally small OpenWork package that lets us experiment aggressively with "workspace becomes agent" while staying grounded in existing infrastructure:
@@ -18,6 +19,7 @@ This PRD proposes **Agent Lab**: a new, intentionally small OpenWork package tha
 MVP scope: **one character per Agent Lab host** (one agent). Later: multiple characters per host.
 
 ## Why now
+
 OpenWork is already powerful, but the "workspace" abstraction drifts from how many users think about delegation:
 
 - Users want "a helper" with a personality and a safety boundary.
@@ -37,6 +39,7 @@ All while maintaining OpenWork principles:
 - **CLI-first + sidecar-composable** (see `_repos/openwork/INFRASTRUCTURE.md`).
 
 ## Target users (Agent Lab)
+
 Grounded in OpenWork's target users (see `_repos/openwork/PRODUCT.md`):
 
 - **Bob (power user / IT)**: wants to compose agents, constrain access, and share setups.
@@ -45,6 +48,7 @@ Grounded in OpenWork's target users (see `_repos/openwork/PRODUCT.md`):
 Non-goal for MVP: fully polished "Susan in accounting" onboarding. (We still keep defaults safe and understandable.)
 
 ## Goals
+
 - Ship a new package inside `_repos/openwork/packages/` that provides an **Agent Lab host** with:
   - character (avatar) + agent config
   - sandboxed execution
@@ -57,6 +61,7 @@ Non-goal for MVP: fully polished "Susan in accounting" onboarding. (We still kee
 - (MVP) macOS-only is acceptable if it accelerates iteration.
 
 ## Non-goals
+
 - Replacing the main OpenWork desktop/mobile UI.
 - Building a multi-tenant hosted SaaS control plane (billing/orgs/SSO).
 - Inventing new capability systems that bypass OpenCode (no bespoke plugin system).
@@ -66,22 +71,34 @@ Non-goal for MVP: fully polished "Susan in accounting" onboarding. (We still kee
 ## Core concepts
 
 ### 1) Agent character
+
 An "agent" is a first-class object. The character is the UX representation.
 
+Note by the implement:
+I'm afraid that calling this agent will cause some issues. Especially since there's also the concept of `.opencode/agents`
+
+Maybe we should swithc to Worker
+
 Agent = {
+
 - `id`, `name`
 - `avatar`: deterministic SVG generated from `avatarSeed` (no image uploads required)
 - `entrypoints`: allowlisted folders the agent can see (mounted into sandbox)
 - `skills`: `.opencode/skills/*` installed into agent home
 - `plugins`: `opencode.json` plugin list
 - `scheduler`: recurring jobs targeting this agent
-- `bot`: optional owpenbot channels and policies
+- `identities`: optional owpenbot channels and policies
 - `runtime`: local sandbox backend + image + resource limits
-}
+  }
 
 MVP constraint: a single agent per Agent Lab host.
 
-### 2) Agent home directory (portable)
+### 2) Worker home directory (portable)
+
+Implementer note: everything that works in opencode will instanlty work in OpenWork since we use the opencode engine. The only quetion is if we allow to configure it easily in the UI.
+
+E.g. We have the skills/plugins/agents. We can simply ask the chat to populate these files easily since the the llm can write _anything_ there and these files are just markdown files.
+
 Each agent gets a dedicated home directory that contains its OpenCode-native configuration:
 
 - `.opencode/skills/*`
@@ -91,6 +108,7 @@ Each agent gets a dedicated home directory that contains its OpenCode-native con
 This makes agents exportable/importable using existing OpenWork server surfaces (`/workspace/:id/export` + `/import`).
 
 ### 3) Sandbox boundary
+
 Agent Lab runs the entire host stack inside a Linux container boundary (preferred):
 
 - `opencode` engine
@@ -108,6 +126,7 @@ Key safety idea: the agent can only access:
 Entrypoints are the user-facing name for these mounts: "folders this agent can see". They should feel like volumes: explicit, inspectable, and revocable.
 
 ### 4) Agent scheduler
+
 An agent's scheduler is a way to run prompts "later" and "repeatedly".
 
 Implementation path (Mac-only MVP, sandbox-compatible):
@@ -128,6 +147,7 @@ MVP scheduler requirements:
 - view logs
 
 ### 5) Multi-instance hosting
+
 An "app instance" is not a singleton desktop app. It is a host stack with its own:
 
 - ports
@@ -138,6 +158,7 @@ An "app instance" is not a singleton desktop app. It is a host stack with its ow
 We should support multiple running Agent Lab hosts on one machine.
 
 ### 6) Multiple agents are permission boundaries
+
 The primary reason to create multiple agents is not specialization. It is separation:
 
 - different folder access (entrypoints)
@@ -149,6 +170,7 @@ Users can still have a "mega agent" locally; Agent Lab makes it easy to spin off
 ## Product requirements (MVP)
 
 ### Onboarding
+
 - First launch auto-creates:
   - one agent character
   - one agent home directory
@@ -157,7 +179,14 @@ Users can still have a "mega agent" locally; Agent Lab makes it easy to spin off
   - a small set of entrypoints (folders) for the agent
   - whether entrypoints are mounted `ro` or `rw` (default `ro`)
 
+We get the user instantly into the chat interface.
+Show them create your first skill, connect an mcp, share. button (<- which jsut trigger some info about sharing)
+
 ### Agent management
+
+Impelmeneter note:
+Again let's reuse cworkapce as the main thing we have this already mainly installd
+
 - View agent profile:
   - avatar, name
   - entrypoints
@@ -170,32 +199,38 @@ Users can still have a "mega agent" locally; Agent Lab makes it easy to spin off
 - Import agent bundle (optional in MVP, recommended early).
 
 ### Running tasks
+
 - Compose a prompt and run it.
 - See streaming output and a minimal step timeline (reuse Toy UI patterns).
 - The agent responds quickly with a short checkpoint before starting heavy work.
 - List artifacts/outbox and download.
 
 ### Skills
+
 - List installed skills.
-- Install skill packages via OpenPackage (`opkg install ...`) (reuse existing OpenWork skill manager logic, but keep UX minimal).
+- Adding only via chat app
 - Remove a skill.
 - Conversation-driven creation: after a successful run, the user can say "turn this into a skill" and the agent writes `.opencode/skills/<name>/SKILL.md`.
-- Reuse across agents: user can bring an existing skill into a new agent (via `opkg install`, export/import, or a host-side skill library later).
 
 ### Plugins
+
 - List enabled plugins.
 - Enable/disable plugin by editing `opencode.json`.
 
 ### Scheduler
+
+- Call it automations in the ui
 - Create a recurring job for the agent (daily/weekly/cron).
 - Run job now.
 - View job logs.
 
-### Bot (optional MVP)
+### Identity
+
 - Show owpenbot health/status.
-- Provide a "connect surface" stub (even if onboarding is deferred).
+- Nice interface to a) undersand if configured b) understand the end identity of it e.g. what' is my telegram bot c) understand the
 
 ### Sharing
+
 - Share is a first-class action on the agent:
   - show a workspace URL (`/w/<id>`) and connect artifact (`openwork.connect.v1`)
   - mint scoped tokens (`viewer`/`collaborator`/`owner`) via `openwork-server` token APIs
@@ -204,6 +239,7 @@ Users can still have a "mega agent" locally; Agent Lab makes it easy to spin off
 Shareability note: sharing is orthogonal to "local vs cloud". The UX is the same - only the base URL changes (localhost, LAN, or a hosted URL). Agent Lab should include a "Deploy (Beta)" affordance in the share sheet even if it is a stub in MVP.
 
 ## UX direction (Agent Lab)
+
 Agent Lab is "small but premium":
 
 - Character card as the primary navigation anchor.
@@ -220,18 +256,21 @@ Avatar direction:
 - No external assets required; SVG is computed client-side.
 
 ## Conversation-first creation loop
+
 Most of the agent is built through talk -> do -> refine. The UI's job is to make this feel safe, legible, and shareable.
 
 ### The core loop
-1) User asks the agent to do a task (example: "add subtitles to this video")
-2) Agent executes, showing checkpoints and steps
-3) User says: "Create a skill for this"
-4) Agent triggers a skill-creation flow (the "skill creator") and writes a new skill into the agent home:
+
+1. User asks the agent to do a task (example: "add subtitles to this video")
+2. Agent executes, showing checkpoints and steps
+3. User says: "Create a skill for this"
+4. Agent triggers a skill-creation flow (the "skill creator") and writes a new skill into the agent home:
    - `.opencode/skills/<skill-name>/SKILL.md`
-5) (Optional) User says: "Schedule this daily" or "Share this with my team"
-6) Agent Lab updates the agent's fabric (skills/plugins/folders/scheduler/tokens)
+5. (Optional) User says: "Schedule this daily" or "Share this with my team"
+6. Agent Lab updates the agent's fabric (skills/plugins/folders/scheduler/tokens)
 
 ### What the UI should optimize for
+
 - Text-first configuration: the default way to add things is to ask, not to click through wizards.
 - Buttons are for:
   - inspecting current setup (skills/plugins/apps/folders)
@@ -239,6 +278,7 @@ Most of the agent is built through talk -> do -> refine. The UI's job is to make
   - sharing (generate links/tokens/exports)
 
 ### Personality (agent as a co-worker)
+
 Agent Lab should support a per-agent personality that is:
 
 - explicit and editable
@@ -254,6 +294,7 @@ The UI can show the personality as read-only by default, with edits performed vi
 Default personality direction (MVP): calm, serious, and professional. Avoid overly cute banter; be direct and transparent about what is happening.
 
 ### Checkpoints and progress (make waiting feel good)
+
 The agent should never feel silent.
 
 Behavior targets:
@@ -264,6 +305,7 @@ Behavior targets:
 - If a task is likely to take a long time, break it into a quick preflight tool call followed by the heavy tool call so the user sees immediate progress.
 
 ## Mock designs (Mac-only)
+
 This PRD includes a static UI mock of the Agent Lab window. It is intentionally not tied to the current OpenWork frontend stack (SolidJS) - it exists to lock in interaction and hierarchy ideas.
 
 - Mock source: `prds/mocks/agent-lab-window.mock.tsx`
@@ -286,6 +328,7 @@ Notes:
 ## Architecture deep dive (Mac-only MVP)
 
 ### Core boundary: one edge URL
+
 Agent Lab should reuse the existing OpenWork Host contract (see `prds/openwork-minimal-containerization.md`), with `openwork-server` as the only public surface.
 
 High-level:
@@ -304,6 +347,7 @@ Agent Lab Instance Manager (new package)
 In sandbox mode, `openwork-server` proxies OpenCode and is the "base URL" for clients. This matches how `openwrk` already computes `opencodeBaseUrl` in sandbox mode.
 
 ### What is an "Agent Lab instance"
+
 To support "multiple apps" on one Mac, we define an instance as:
 
 - 1x `openwrk start --detach ...` process (or a long-lived container + detached openwrk session)
@@ -317,6 +361,7 @@ The UI can either:
 - run as one app with multiple windows (one per instance).
 
 ### Instance directory layout (proposed)
+
 The instance manager owns a directory per instance and treats it as the source of truth.
 
 Example:
@@ -345,6 +390,7 @@ Why this matters:
 - Nothing relies on hidden global state.
 
 ### How we reuse `openwrk` (exact flags)
+
 The new package should treat `openwrk` as the supervisor and keep the glue thin.
 
 Mac-only MVP start command shape (illustrative):
@@ -368,6 +414,7 @@ Notes:
 - `--approval manual` is safer by default; local dev can flip to `auto`.
 
 ### How we reuse `openwork-server` (exact endpoints)
+
 Agent Lab should not invent a new backend. Use `openwork-server` endpoints and rename concepts in UI.
 
 Core endpoints Agent Lab UI should rely on:
@@ -414,21 +461,27 @@ Known gaps to call out explicitly:
   - treat uninstall as a local-only filesystem action (less ideal for web parity).
 
 ### Conversation-first configuration pipeline
+
 Agent Lab should treat chat as the primary configuration surface.
 
 How it works end-to-end:
 
-1) UI sends a user prompt to OpenCode (`/w/:id/opencode/session/:sessionId/prompt_async`).
-2) OpenCode responds with message parts + tool calls.
-3) When the user asks "turn this into a skill", the agent writes:
+1. UI sends a user prompt to OpenCode (`/w/:id/opencode/session/:sessionId/prompt_async`).
+2. OpenCode responds with message parts + tool calls.
+3. When the user asks "turn this into a skill", the agent writes:
    - `.opencode/skills/<skill-name>/SKILL.md`
    - optional supporting files (templates, examples)
-4) `openwork-server` detects `.opencode/` changes and publishes a reload event (`GET /workspace/:id/events`).
-5) UI refreshes Skills/Plugins/Commands views and shows a "Reloaded" checkpoint.
+4. OpenWork emits reload signals when config changes.
+   - Server-driven changes: `openwork-server` records reload events and exposes them at `GET /workspace/:id/events`.
+   - Desktop-driven changes: the Tauri file watcher emits `openwork://reload-required` when `.opencode/` or `opencode.json{c}` changes.
+5. Because OpenCode does not hot-reload config today, the UI should offer an explicit engine reload:
+   - `POST /workspace/:id/engine/reload` (OpenWork) calls `POST /instance/dispose?directory=...` (OpenCode).
+6. UI refreshes Skills/Plugins/Commands views and shows a "Reloaded" checkpoint.
 
 The important property: configuration is produced by the agent using OpenCode primitives (files + prompts), not by bespoke UI forms.
 
 ### Approvals and permissions (do not let collaborators self-approve)
+
 Agent Lab needs two layers of safety:
 
 - openwork-server approvals (host/owner token) for writes through its own endpoints (skills/plugins/mcp/commands).
@@ -446,6 +499,7 @@ MVP requirement:
 This keeps conversation-first configuration safe when the agent is shared.
 
 ### Folder access model (authorized roots + sandbox mounts)
+
 Folder access is a first-class part of the agent identity.
 
 - openwork-server already supports `authorizedRoots` (server config) to constrain which workspace roots are allowed.
@@ -458,6 +512,7 @@ Agent Lab should:
 - treat mount changes as requiring a sandbox restart (explicit UI checkpoint)
 
 ### Scheduler (Mac-only MVP)
+
 Scheduler is a core "agent" feature, but sandbox mode complicates reuse of OS-native schedulers:
 
 - `opencode-scheduler` (plugin) relies on host OS schedulers (launchd/systemd).
@@ -500,12 +555,20 @@ Follow-up (once we decide the long-term model):
 - extend `openwrk` to offer a host-side scheduler adapter that still executes runs inside sandbox.
 
 ### Bot surfaces (owpenbot)
+
 Reuse owpenbot exactly as OpenWork does today:
 
 - owpenbot runs as a sidecar (inside sandbox when sandbox is enabled)
 - openwork-server proxies it under `/owpenbot/*`
 
 Agent Lab UI only talks to the edge server.
+
+Repo-grounded owpenbot observability/config hooks (today):
+
+- Proxy: `GET /owpenbot/health` (read-only) and `/owpenbot/*` (host-auth)
+- Helper endpoints (workspace-scoped + approval gated):
+  - `POST /workspace/:id/owpenbot/telegram-token`
+  - `POST /workspace/:id/owpenbot/slack-tokens`
 
 ## Technical architecture (reuse map)
 
@@ -531,24 +594,25 @@ Agent Lab UI only talks to the edge server.
 
 ### Reuse matrix (feature -> component -> interface)
 
-| Agent Lab feature | Reuse component | Interface we use | Notes |
-| --- | --- | --- | --- |
-| Run a task (prompt) | OpenCode | `/w/:id/opencode/session/*` | Sessions + streaming are the core primitive |
-| Stream updates | OpenCode | `/w/:id/opencode/event` (SSE) | Reuse the existing event model |
-| Skills list/install | openwork-server | `/workspace/:id/skills` | Uninstall may require a new endpoint |
-| Plugins CRUD | openwork-server | `/workspace/:id/plugins` + `opencode.json` | Treat plugin list as OpenCode-native |
-| MCP CRUD | openwork-server | `/workspace/:id/mcp` | OAuth flow stays external to Agent Lab |
-| Commands CRUD | openwork-server | `/workspace/:id/commands` | Optional for v1 |
-| File injection | openwork-server | `/workspace/:id/inbox` | Uploads land in `.opencode/openwork/inbox/` |
-| Outputs/artifacts | openwork-server | `/workspace/:id/artifacts/*` | Downloads read from outbox/artifacts |
-| Sandbox execution | openwrk | `openwrk start --sandbox ...` | Container boundary encloses the stack |
-| Extra mounts | openwrk | `--sandbox-mount` + allowlist | Physical enforcement of entrypoints |
-| Bot surfaces | owpenbot | `/owpenbot/*` proxy via openwork-server | Single edge URL |
-| Scheduling | (MVP) instance manager | launchd plists + curl | `opencode-scheduler` is a follow-up due to sandbox |
+| Agent Lab feature   | Reuse component        | Interface we use                           | Notes                                              |
+| ------------------- | ---------------------- | ------------------------------------------ | -------------------------------------------------- |
+| Run a task (prompt) | OpenCode               | `/w/:id/opencode/session/*`                | Sessions + streaming are the core primitive        |
+| Stream updates      | OpenCode               | `/w/:id/opencode/event` (SSE)              | Reuse the existing event model                     |
+| Skills list/install | openwork-server        | `/workspace/:id/skills`                    | Uninstall may require a new endpoint               |
+| Plugins CRUD        | openwork-server        | `/workspace/:id/plugins` + `opencode.json` | Treat plugin list as OpenCode-native               |
+| MCP CRUD            | openwork-server        | `/workspace/:id/mcp`                       | OAuth flow stays external to Agent Lab             |
+| Commands CRUD       | openwork-server        | `/workspace/:id/commands`                  | Optional for v1                                    |
+| File injection      | openwork-server        | `/workspace/:id/inbox`                     | Uploads land in `.opencode/openwork/inbox/`        |
+| Outputs/artifacts   | openwork-server        | `/workspace/:id/artifacts/*`               | Downloads read from outbox/artifacts               |
+| Sandbox execution   | openwrk                | `openwrk start --sandbox ...`              | Container boundary encloses the stack              |
+| Extra mounts        | openwrk                | `--sandbox-mount` + allowlist              | Physical enforcement of entrypoints                |
+| Bot surfaces        | owpenbot               | `/owpenbot/*` proxy via openwork-server    | Single edge URL                                    |
+| Scheduling          | (MVP) instance manager | launchd plists + curl                      | `opencode-scheduler` is a follow-up due to sandbox |
 
 ### What we add (new)
 
 #### A) New OpenWork package
+
 Add a new package inside `_repos/openwork/packages/`:
 
 - Suggested name: `packages/agent-lab`
@@ -562,6 +626,7 @@ Add a new package inside `_repos/openwork/packages/`:
 This package should be CLI-first (aligns with `_repos/openwork/INFRASTRUCTURE.md`).
 
 #### B) Agent Lab UI (served by openwork-server)
+
 Evolve Toy UI into a real experimentation UI:
 
 - Option 1 (recommended): build static assets from `packages/agent-lab-ui` and have `openwork-server` serve versioned assets.
@@ -570,12 +635,14 @@ Evolve Toy UI into a real experimentation UI:
 Recommendation: start with Option 2 to move quickly, then migrate to Option 1 once flows stabilize.
 
 #### C) Agent model + persistence
+
 We need a storage location for "agent" metadata that is not the workspace directory itself.
 
 - Store in the OpenWork server config dir (same persistence boundary as tokens), e.g. `~/.config/openwork/agent-lab/agents.json`.
 - Never mount this policy store into the sandbox.
 
 #### D) Mount policy enforcement
+
 Reuse the existing `openwrk` mount allowlist strategy:
 
 - allowlist file outside the workspace: `~/.config/openwork/sandbox-mount-allowlist.json` (already used by openwrk)
@@ -583,6 +650,7 @@ Reuse the existing `openwrk` mount allowlist strategy:
 - resolve symlinks before allowing mounts
 
 ## Agent <-> OpenWork mapping (compatibility strategy)
+
 We want to reuse existing host contract shapes that talk about "workspaces".
 
 Recommended mapping:
@@ -599,6 +667,7 @@ This keeps compatibility with:
 Later: introduce explicit `agents` endpoints as an additive layer once the model stabilizes.
 
 ## Instance isolation (multi-instance)
+
 To support multiple Agent Lab hosts concurrently, every instance must be configurable via flags/env:
 
 - `openwork-server`:
@@ -617,6 +686,7 @@ Agent Lab package should:
 - print a stable connect artifact (`openwork.connect.v1`) for sharing
 
 ## Cloud / remote story
+
 Agent Lab is "local-first, cloud-ready" by reuse:
 
 - Local: run `openwrk start --sandbox auto` on your machine.
@@ -626,12 +696,13 @@ Agent Lab is "local-first, cloud-ready" by reuse:
 This inherits the OpenWork Host contract described in `prds/openwork-minimal-containerization.md`.
 
 ## Security posture
+
 Defense in depth:
 
-1) OS isolation boundary (container/VM sandbox) shrinks blast radius.
-2) OpenWork server approvals for writes (host token / owner scope) remain the remote-safe boundary.
-3) OpenCode permissions still gate tool-level requests.
-4) Proxy scope gating: collaborators must not be able to reply to OpenCode permission prompts via `/opencode/*`.
+1. OS isolation boundary (container/VM sandbox) shrinks blast radius.
+2. OpenWork server approvals for writes (host token / owner scope) remain the remote-safe boundary.
+3. OpenCode permissions still gate tool-level requests.
+4. Proxy scope gating: collaborators must not be able to reply to OpenCode permission prompts via `/opencode/*`.
 
 Defaults:
 
@@ -642,35 +713,43 @@ Defaults:
 ## Milestones
 
 ### Phase 0: PRD + capability map (this document)
+
 - confirm reuse plan and compatibility mapping
 
 ### Phase 1: Single-agent host + UI
+
 - new package scaffold
 - run one agent in sandbox via openwrk
 - UI: character card + run prompt + stream output
 
 ### Phase 2: Skills/plugins/folders management
+
 - entrypoint selection persisted and enforced via mounts
 - minimal skills install/remove
 - plugin enable/disable
 
 ### Phase 3: Scheduler
+
 - integrate macOS launchd scheduling (instance manager)
 - UI: create/run/list jobs + view last run + show logs link
 - follow-up: adopt `opencode-scheduler` where sandbox boundaries allow
 
 ### Phase 4: Bot integration
+
 - expose owpenbot status and minimal onboarding surfaces
 
 ### Phase 5: Multi-agent (multi-character) per host
+
 - add agent list, switching, and isolation
 
 ## Success metrics
+
 - < 5 minutes from "start host" to first successful sandboxed task.
 - Clear visibility that sandboxing is on and what folders are mounted.
 - Can run 2+ Agent Lab instances simultaneously without port/config conflicts.
 
 ## Open questions
+
 - Should "entrypoints" be modeled as mounts only (sandbox-first), or also as OpenWork-authorized roots (non-sandbox parity)?
 - Scheduler placement: OS scheduler (host) vs inside sandbox vs in openwork-server.
 - How should we represent model/provider config per agent (inherit global vs agent-scoped `opencode.json`)?
@@ -678,7 +757,19 @@ Defaults:
 - What is the minimal avatar grammar that feels "alive" without adding a new asset pipeline?
 
 ## Appendix: explicit reuse checklist
+
 - `openwrk --sandbox auto` is the default execution boundary.
 - `openwork-server` remains the single public edge (proxying `/opencode/*` and `/owpenbot/*`).
 - Agents are OpenCode-native configs (`.opencode`, `opencode.json`) with minimal extra metadata.
 - Scheduler uses macOS launchd in MVP; `opencode-scheduler` is a follow-up if we run OpenCode outside sandbox or add a host-side adapter.
+
+Note from the implementer:
+I think one thing that's missing is really like you're able to share these functionalities and in a way I want this to be as close to possible to really a minimal server implementation that you know people can just one click command and then it boots up an instance and this instance can have multiple workers and have a way to for this worker config to be shared to another server and the way the sync is happening shouldn't matter (file, link, etc). Portability is important but then there's a question if you make this portable, the other machine might not have access to the exact same kind of cocoon that you had and you know maybe they don't have the same chrome interface. Like if you're using your chrome etc it might not work for everyone to use this in the cloud. So we're basically facing a few issues:
+Is there a way to create this portable entity and having the end, since it's been run in a different environment with not necessarily the same endvars, right, it's not the same Chrome profile. I feel we need an extra abstraction where that in the cloud is a non-stateful version of the agent that's just running that agent config, and then it can be reconfigured. When people connect to it, people need to configure it. Again, I really something that you're not getting well with should use the primitive of the chat to ask repopulate information could be a built-in thing that you're able to reconstruct your state.
+
+So, I think one of my mistakes is there are two types of sharing:
+
+1.  Giving access to a unit that's already pre-configured and running, using their own credentials and information
+2.  Sharing the blueprint of this agent
+
+One of them has more to do with what is part of the agent identity, which is identity has access to actually stateful information and it could really well be your own stuff there. But I think people will want to do both. I think you will want to create their own email address and get them in the cloud and have people kind of use this as if it's his own person in some other ways. There is like workers that are more a copy of you. That no one else should be able to access for you. Except you. And like people pre-populating the information there, it might be, I don't know how to do it so let's brain storm a bit together.
