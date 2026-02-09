@@ -1,7 +1,7 @@
 name: openwork-testability
 description: |
   Make testing sending a message via the UI a core part of OpenWork testability.
-  Use dev:web + headless as the default testing pairing.
+  Use Docker Compose + Chrome MCP as the default testing pairing.
 
   Triggers when user mentions:
   - "testability toolbox"
@@ -9,7 +9,96 @@ description: |
   - "send a message via the ui"
 ---
 
-## Core sequence (required)
+## Recommended: Docker Compose + Chrome MCP
+
+One command to start, then point Chrome MCP at it. Zero manual wiring.
+
+### 1. Start the stack
+
+```bash
+# From the openwork repo root
+docker compose -f packaging/docker/docker-compose.dev.yml up -d
+```
+
+First run takes ~2 minutes (image pull + dep install + binary build).
+Subsequent runs take ~10 seconds (all cached in named volumes).
+
+Wait for both services:
+- Headless health: `curl http://localhost:8787/health` (should return `{"ok":true,...}`)
+- Web UI: `http://localhost:5173`
+
+### 2. Verify with Chrome MCP
+
+Open the web UI in Chrome MCP:
+
+```
+chrome-devtools: new_page url="http://localhost:5173"
+```
+
+The UI is already wired to headless — you'll see **"REMOTE WORKSPACE"** in the
+input area and **"workspace / Remote"** in the sidebar. No Settings > Remote
+configuration needed.
+
+### 3. Send a test message
+
+1. The UI should load on `/session` with a **"New task"** view.
+2. Type a message in the chat input (e.g., "hello from testability").
+3. Click **Send** (or press Enter).
+4. Confirm the message appears in the thread and a response is received.
+
+The feature is not done until this works.
+
+### 4. Tear down
+
+```bash
+docker compose -f packaging/docker/docker-compose.dev.yml down
+```
+
+### Useful commands
+
+```bash
+# Logs
+docker compose -f packaging/docker/docker-compose.dev.yml logs headless
+docker compose -f packaging/docker/docker-compose.dev.yml logs web
+
+# Health check
+curl http://localhost:8787/health
+
+# Restart just headless
+docker compose -f packaging/docker/docker-compose.dev.yml restart headless
+
+# Override tokens (optional)
+OPENWORK_TOKEN=my-token docker compose -f packaging/docker/docker-compose.dev.yml up -d
+```
+
+### What the stack does
+
+- **headless** (port 8787): installs deps, builds Linux binaries to `/tmp`
+  (avoids overwriting host macOS binaries), starts OpenCode + OpenWork server,
+  auto-generates and shares tokens.
+- **web** (port 5173): waits for headless health check, reads the shared token,
+  starts Vite with `VITE_OPENWORK_URL` pre-wired to `localhost:8787`.
+- No custom Dockerfile — uses `node:22-bookworm-slim` off the shelf.
+- Named volumes cache bun, pnpm store, so rebuilds are fast.
+
+---
+
+## Alternative: Manual (non-Docker)
+
+Use this when Docker is unavailable or you need custom control.
+
+### Option A: Single script (auto-wired)
+
+```bash
+cd _repos/openwork
+pnpm --filter openwork-server build:bin && pnpm --filter owpenwork build:bin
+pnpm dev:headless-web
+```
+
+This builds binaries, starts headless + web, and pre-wires tokens via env vars.
+Open the URL printed to stdout (default `http://localhost:<port>`).
+
+### Option B: Two separate processes
 
 1. Start headless in an empty workspace (always use a non-default port):
 
@@ -33,17 +122,14 @@ nohup pnpm dev:web -- --port 5175 > /tmp/openwork-dev-web.log 2>&1 &
   - Client token
 - Click **Test connection** and confirm **Connected**.
 
-4. Create a session and send a message:
+4. Send a test message (same as step 3 above).
 
-- Go to Sessions.
-- Click **New Task**.
-- In the chat input, type a short message (e.g., "hello from testability") and press Enter.
-- Confirm the message appears in the thread.
+---
 
-5. Capture logs if something fails:
+## Capture logs if something fails
 
-- `/tmp/openwrk-headless.log`
-- `/tmp/openwork-dev-web.log`
+- Docker: `docker compose -f packaging/docker/docker-compose.dev.yml logs`
+- Manual: `/tmp/openwrk-headless.log`, `/tmp/openwork-dev-web.log`
 - Chrome DevTools console (Chrome MCP)
 
 ## Full test suite (run all)
@@ -67,6 +153,7 @@ pnpm test:openwrk
 
 ## Notes
 
-- dev:web + headless is the default pairing for OpenWork testing.
-- Always use non-default ports for both headless and web so multiple runs can operate in parallel.
+- Docker Compose + Chrome MCP is the default testing pairing.
 - The feature is not done until a UI message is sent successfully.
+- First run is slow (~2min); subsequent runs use cached volumes (~10s).
+- Binaries are built inside the container to `/tmp` so they don't conflict with macOS-native binaries on the host mount.
