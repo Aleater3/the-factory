@@ -248,7 +248,11 @@ async function collectBootstrapDraft(input: {
         demo: input.demoMode,
       });
     } catch (error) {
-      process.stderr.write(`OpenTUI unavailable, falling back to prompt mode: ${error instanceof Error ? error.message : String(error)}\n`);
+      const detail = error instanceof Error ? error.message : String(error);
+      const hint = detail.includes("ERR_UNKNOWN_FILE_EXTENSION") || detail.includes(".scm")
+        ? " (OpenTUI runtime assets require Bun in this environment)"
+        : "";
+      process.stderr.write(`OpenTUI unavailable, falling back to prompt mode: ${detail}${hint}\n`);
     }
   }
 

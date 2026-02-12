@@ -1,6 +1,6 @@
 {
   "name": "oneclaw",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Identity pack CLI for AI assistants and bots",
   "type": "module",
   "bin": {
@@ -8,6 +8,7 @@
   },
   "files": [
     "dist",
+    "scripts",
     "README.md",
     "LICENSE"
   ],
@@ -15,6 +16,7 @@
     "clean": "rm -rf dist",
     "build": "tsc -p tsconfig.json",
     "dev": "tsx src/cli.ts",
+    "postinstall": "node scripts/postinstall-opentui-jsx-runtime.mjs",
     "test": "vitest run",
     "prepublishOnly": "npm run test && npm run build"
   },

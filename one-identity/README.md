@@ -31,6 +31,7 @@ oneclaw bootstrap --profile default --pack founder
 
 Use `--no-tui` for plain prompt mode.
 If OpenTUI runtime bindings are unavailable, oneclaw falls back to plain prompt mode automatically.
+If you see `.scm` runtime extension errors, run oneclaw with Bun (`bunx oneclaw`) or use `--no-tui`.
 
 ### Demo autopilot mode
 
