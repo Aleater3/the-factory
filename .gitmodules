@@ -14,3 +14,6 @@
 [submodule "_repos/agent-mint"]
 	path = _repos/agent-mint
 	url = https://github.com/different-ai/agent-mint.git
+[submodule "_repos/agent-bank"]
+	path = _repos/agent-bank
+	url = https://github.com/different-ai/agent-bank.git

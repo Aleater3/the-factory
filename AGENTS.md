@@ -13,6 +13,7 @@ Repos in scope:
 - `_repos/opencode-browser` (browser plugin)
 - `_repos/opencode-scheduler` (scheduler and launchd tasks)
 - `_repos/agent-mint` (agent-mint project)
+- `_repos/agent-bank` (agent-bank project)
 
 Default behaviors:
 
